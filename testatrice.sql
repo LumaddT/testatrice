@@ -282,3 +282,5 @@ CREATE TABLE IF NOT EXISTS `cockatrice_audit` (
   PRIMARY KEY  (`id`),
   KEY `user_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO servatrice.cockatrice_users (admin,name,password_sha512,active) VALUES (1,'Admin','jbB4kSWDmjaVzMNdU13n73SpdBCJTCJ/JYm5ZBZvfxlzbISbXir+e/aSvMz86KzOoaBfidxO0s6GVd8t00qC0TNPl+udHfECaF7MsA==',1);

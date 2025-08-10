@@ -23,7 +23,8 @@ You should wait approximately 30 seconds between the two `podman run` commands t
 
 The server can be reached at `localhost:4747` and `localhost:4748`.  
 Logs are stored in `./logs/server.log`.  
-After the initial ocnfiguration the server can be started by running only the `podman run` commands.
+A user with server admin privileges is created in the database with username `Admin` and password `password`.  
+After the initial configuration the server can be started by running only the `podman run` commands.
 
 To stop the containers run:
 ```
