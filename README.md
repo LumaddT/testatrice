@@ -6,23 +6,28 @@ NB: This configuration is intended excludively for testing purposes. No security
 
 ## Running testatrice
 
+With this configuration the containers are allowed to run rootless, with static IP addresses and without Internet access.
+
 ```
 git clone https://github.com/LumaddT/testatrice.git
 cd testatrice
 
 podman build --file testatrice-database.dockerfile -t testatrice-database
+podman build --file testatrice-mailserver.dockerfile -t testatrice-mailserver
 podman build --file testatrice-server.dockerfile -t testatrice-server
 
-sed -i 's/"cniVersion": "1\.0\.0"/"cniVersion": "0\.4\.0"/' $(podman network create testatrice-network)
+sed -i 's/"cniVersion": "1\.0\.0"/"cniVersion": "0\.4\.0"/' $(podman network create --internal --subnet 10.11.12.0/24 --disable-dns testatrice-network)
 
-podman run --network=testatrice-network --detach --rm -h testatrice-database --name testatrice-database testatrice-database --sql-mode="NO_AUTO_VALUE_ON_ZERO"
-podman run --network=testatrice-network --detach -v ./logs:/var/log/servatrice --rm -h testatrice-server --name testatrice-server -p 4747:4747 -p 4748:4748 testatrice-server
+podman run --network=testatrice-network --ip=10.11.12.3 --detach --rm -h testatrice-database --name testatrice-database testatrice-database --sql-mode="NO_AUTO_VALUE_ON_ZERO"
+podman run --network=testatrice-network --ip=10.11.12.4 --detach -v ./mails:/mailserver/mails --rm -h testatrice-mailserver --name testatrice-mailserver testatrice-mailserver
+podman run --network=testatrice-network --ip=10.11.12.2 --detach -v ./logs:/var/log/servatrice --rm -h testatrice-server --name testatrice-server -p 4747:4747 -p 4748:4748 testatrice-server
 ```
 
-You should wait approximately 30 seconds between the two `podman run` commands to allow the database to start properly.
+You should wait approximately 30 seconds between the `podman run` command to start the database and the one to start the server.
 
 The server can be reached at `localhost:4747` and `localhost:4748`.  
 Logs are stored in `./logs/server.log`.  
+Emails are stored in `./mails/mails.txt`  
 A user with server admin privileges is created in the database with username `Admin` and password `password`.  
 After the initial configuration the server can be started by running only the `podman run` commands.
 
@@ -30,6 +35,7 @@ To stop the containers run:
 ```
 podman stop testatrice-server
 podman stop testatrice-database
+podman stop testatrice-mailserevr
 ```
 
 ### I'm using Docker
@@ -44,9 +50,11 @@ The database hostname in `testatrice.ini` should also be changed to be compatibl
 * A version of `testatrice-database.dockerfile` which pulls servatrice source code from a local directory instead of the repository.
 * Populate the database with mock data via crow.
 
-## testatrice.ini
+## Mail server
 
-Most of `testatrice.ini` is in its default state.
+The testatrice-mailserver container runs a minimal Python script which pretends to be a SMTP server. It receives emails and prints them to a file. No email is actually sent outside of the containerized environment.
+
+## testatrice.ini
 
 ### server
 * The server expects connections on the default ports 4747 (TCP) and 4748 (WebSocket).
@@ -65,13 +73,18 @@ Most of `testatrice.ini` is in its default state.
 * The minimum password length is set to 1.
 
 ### registration
-* An email address is not required for registration.
+* An email address is required for registration.
+* Email addresses must be verified.
+* The email verification message is in the form `%username | Account activation token: %token\n`.
+* Change requireemail and requireemailactivation to false before building the container images to turn this off.
 
 ### forgotpassword
-* The forgot password functionality is disabled.
+* The forgot password functionality is enabled.
+* The password resed message is in the form `%username | Password reset token: %token\n`.
+* The token expires after 9999 minutes.
 
 ### smtp
-* The SMTP server is disabled.
+* The mock SMTP server does not require authentication.
 
 ### database
 * The MySQL server is expected to be running at `testatrice-database.dns.podman`. This value should be edited if the containers are run through Docker instead.
