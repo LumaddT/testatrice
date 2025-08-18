@@ -19,7 +19,7 @@ podman build --file testatrice-server.dockerfile -t testatrice-server
 sed -i 's/"cniVersion": "1\.0\.0"/"cniVersion": "0\.4\.0"/' $(podman network create --internal --subnet 10.11.12.0/24 --disable-dns testatrice-network)
 
 podman run --network=testatrice-network --ip=10.11.12.3 --detach --rm -h testatrice-database --name testatrice-database testatrice-database --sql-mode="NO_AUTO_VALUE_ON_ZERO"
-podman run --network=testatrice-network --ip=10.11.12.4 --detach -v ./mails:/mailserver/mails --rm -h testatrice-mailserver --name testatrice-mailserver testatrice-mailserver
+podman run --network=testatrice-network --ip=10.11.12.4 --detach -v ./mails:/mailserver/mails --rm -h testatrice-mailserver --name testatrice-mailserver -p 1110:1110 testatrice-mailserver
 podman run --network=testatrice-network --ip=10.11.12.2 --detach -v ./logs:/var/log/servatrice --rm -h testatrice-server --name testatrice-server -p 4747:4747 -p 4748:4748 testatrice-server
 ```
 
@@ -52,7 +52,9 @@ The database hostname in `testatrice.ini` should also be changed to be compatibl
 
 ## Mail server
 
-The testatrice-mailserver container runs a minimal Python script which pretends to be a SMTP server. It receives emails and prints them to a file. No email is actually sent outside of the containerized environment.
+The testatrice-mailserver container runs a rough (_it works_) Python script which pretends to be a SMTP server. It receives emails on port 25 (not exposed) and it prints them to a file. No email is actually sent outside of the containerized environment.
+
+The container listens to port 1110 (exposed to localhost). It is possible to open a socket to that port and send a username. If and when a token is received by the server for that username, the token is returned and the socket is closed.
 
 ## testatrice.ini
 
