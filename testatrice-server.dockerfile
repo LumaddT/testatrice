@@ -26,6 +26,4 @@ RUN cmake .. -DWITH_SERVER=1 -DWITH_CLIENT=0 -DWITH_ORACLE=0 -DWITH_DBCONVERTER=
 
 RUN mkdir -p /var/log/servatrice
 
-COPY ./testatrice.ini /home/servatrice/config/servatrice.ini
-
-ENTRYPOINT servatrice --config /home/servatrice/config/servatrice.ini
+ENTRYPOINT servatrice --config /home/servatrice/config/testatrice.ini

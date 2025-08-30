@@ -1,5 +1,5 @@
 [server]
-name="Servatrice Test Instance"
+name="Testatrice instance: ${TESTATRICE_SERVER_IDENTIFIER}"
 id=1
 host=any
 port=4747
@@ -9,71 +9,71 @@ websocket_host=any
 websocket_port=4748
 statusupdate=15000
 writelog=1
-logfile=/var/log/servatrice/server.log
+logfile=/var/log/servatrice/${TESTATRICE_SERVER_IDENTIFIER}.log
 logfilters=""
 clientkeepalive=1
 max_player_inactivity_time=15
-requireclientid=false
-requiredfeatures=""
+requireclientid=${TESTATRICE_REQUIRE_CLIENT_ID}
+requiredfeatures="${TESTATRICE_REQUIRED_FEATURES}"
 officialwarnings="Flaming,Spamming,Causing Drama,Abusive Language"
-idleclienttimeout=3600
+idleclienttimeout=${TESTATRICE_IDLE_CLIENT_TIMEOUT}
 
 [authentication]
-method=sql
-;password=password
-regonly=false
+method=${TESTATRICE_AUTHETICATION_METHOD}
+password=${TESTATRICE_COMMON_PASSWORD}
+regonly=${TESTATRICE_REQUIRE_REGISTRATION}
 
 [users]
-minnamelength=1
-maxnamelength=35
-allowlowercase=true
-allowuppercase=true
-allownumerics=true
-allowedpunctuation=_.-
-allowpunctuationprefix=true
-;disallowedwords="admin"
+minnamelength=${TESTATRICE_USERNAME_MIN_LENGTH}
+maxnamelength=${TESTATRICE_USERNAME_MAX_LENGTH}
+allowlowercase=${TESTATRICE_ALLOW_LOWERCASE}
+allowuppercase=${TESTATRICE_ALLOW_UPPERCASE}
+allownumerics=${TESTATRICE_ALLOW_NUMERICS}
+allowedpunctuation=${TESTATRICE_ALLOWED_PUNCTUATION}
+allowpunctuationprefix=${TESTATRICE_ALLOW_PUNCTUATION_PREFIX}
+disallowedwords="${TESTATRICE_USERNAME_DISALLOWED_WORDS}"
 ;displaydisallowedwords="no attempts at impersonating staff\nno unparliamentary language\nno references to controversial figures\nstaff reserves the right to remove accounts deemed inappropriate"
 ;disallowedregexp=""
-minpasswordlength = 1
+minpasswordlength=${TESTATRICE_PASSWORD_MIN_LENGTH}
 
 [registration]
-enabled=true
-requireemail=true
-requireemailactivation=true
-maxaccountsperemail=9999
+enabled=${TESTATRICE_ENABLE_REGISTRATION}
+requireemail=${TESTATRICE_REQUIRE_EMAIL_ACTIVATION}
+requireemailactivation=${TESTATRICE_REQUIRE_EMAIL_ACTIVATION}
+maxaccountsperemail=${TESTATRICE_MAX_ACCOUNTS_PER_EMAIL}
 ;emailproviderblacklist=""
 ;emailproviderwhitelist=""
 
 [forgotpassword]
-enable=true
-tokenlife=9999
-;enablechallenge=false
-subject="Testatrice reset password token"
-body="%username | Password reset token: %token\n"
+enable=${TESTATRICE_ENABLE_FORGOT_PASSWORD}
+tokenlife=${TESTATRICE_FORGOT_PASSWORD_TOKEN_LIFE}
+enablechallenge=${TESTATRICE_ENABLE_FORGOT_PASSWORD_CHALLENGE}
+subject="${TESTATRICE_SERVER_IDENTIFIER} reset password token"
+body="${TESTATRICE_SERVER_IDENTIFIER}\n%username\nReset\n%token\n"
 
 [smtp]
 enableinternalsmtpclient=true
 connection=tcp
 acceptallcerts=true
-host=10.11.12.4
+host=testatrice-mailserver.dns.podman
 port=25
-;username=servatrice@10.11.12.4
+;username=servatrice@testatrice-mailserver
 ;password=password
-email=testatrice@10.11.12.4
+email=${TESTATRICE_SERVER_IDENTIFIER}@testatrice-mailserver
 ;name="Testatrice server"
-subject="Testatrice account activation token"
-body="%username | Account activation token: %token\n"
+subject="${TESTATRICE_SERVER_IDENTIFIER} account activation token"
+body="${TESTATRICE_SERVER_IDENTIFIER}\n%username\nActivation\n%token\n"
 
 [database]
 type=mysql
-prefix=cockatrice
-hostname=10.11.12.3
+prefix=${TESTATRICE_SERVER_IDENTIFIER}
+hostname=testatrice-database.dns.podman
 database=servatrice
 user=servatrice
 password=password
 
 [rooms]
-method=config
+method=${TESTATRICE_ROOMS_METHOD}
 roomlist\size=4
 
 roomlist\1\name="General room"
@@ -125,7 +125,7 @@ roomlist\4\game_types\2\name="AdmGameType2"
 roomlist\4\game_types\3\name="AdmGameType3"
 
 [game]
-max_game_inactivity_time=864000
+max_game_inactivity_time=${TESTATRICE_MAX_GAME_INACTIVITY_TIME}
 store_replays=true
 allow_create_as_judge=true
 
