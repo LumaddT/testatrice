@@ -17,8 +17,10 @@ chomd +x testatrice.sh
 ./testatrice.sh --help
 ```
 
-Options:
+### Options
 ```
+None of the arguments is validated.
+
 Server:
   -s, --server-identifier [string]          : used for container name, database prefix, log file name and email from ['testatrice']
   -t, --tcp, --socket [int]                 : TCP socket port exposed to host [4747]

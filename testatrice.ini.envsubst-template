@@ -19,7 +19,7 @@ officialwarnings="Flaming,Spamming,Causing Drama,Abusive Language"
 idleclienttimeout=${TESTATRICE_IDLE_CLIENT_TIMEOUT}
 
 [authentication]
-method=${TESTATRICE_AUTHETICATION_METHOD}
+method=${TESTATRICE_AUTHENTICATION_METHOD}
 password=${TESTATRICE_COMMON_PASSWORD}
 regonly=${TESTATRICE_REQUIRE_REGISTRATION}
 

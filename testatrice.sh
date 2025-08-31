@@ -60,7 +60,7 @@ print_usage() {
   echo "  -udl, --username-disallow-lowercase       : do not allow lowercase letters in the username"
   echo "  -udu, --username-disallow-uppercase       : do not allow uppercase letters in the username"
   echo "  -udn, --username-disallow-numerics        : do not allow digits in the username"
-  echo "  -ap, --allowed-punctuation [string]       : a string of puncutation marks which can be accepted in the username [_.-]"
+  echo "  -ap, --allowed-punctuation [string]       : a string of punctuation marks which can be accepted in the username [_.-]"
   echo "  -app, --allow-punctuation-prefix          : allow a punctuation mark to be the first character in a username"
   echo "  -dw, --disallowed-words [string]          : comma separated list of words not to be allowed in a username ['']"
   echo "Misc:"
@@ -110,7 +110,7 @@ mkdir -p ${log_path}/mails
 
 podman container exists testatrice-server-${server_identifier}
 if [ $? -eq 0 ]; then
-  echo "Testatrice instance with identifier ${server_identifier} already running. Specify a different identifier witht the -s flag. Run with -h to see usage info."
+  echo "Testatrice instance with identifier ${server_identifier} already running. Specify a different identifier with the -s flag. Run with -h to see usage info."
   exit 2
 fi
 
@@ -121,7 +121,7 @@ fi
 
 podman image exists testatrice-server
 if [ $? -ne 0 ]; then
-  echo "Building serevr image..."
+  echo "Building server image..."
   podman build --file testatrice-server.dockerfile -t testatrice-server
   echo ""
 fi
@@ -159,7 +159,7 @@ export TESTATRICE_SERVER_IDENTIFIER=${server_identifier}
 export TESTATRICE_REQUIRE_CLIENT_ID=${require_client_id}
 export TESTATRICE_REQUIRED_FEATURES=${required_features}
 export TESTATRICE_IDLE_CLIENT_TIMEOUT=${idle_client_timeout}
-export TESTATRICE_AUTHETICATION_METHOD=${authentication_method}
+export TESTATRICE_AUTHENTICATION_METHOD=${authentication_method}
 export TESTATRICE_COMMON_PASSWORD=${common_password}
 export TESTATRICE_ENABLE_REGISTRATION=${enable_registration}
 export TESTATRICE_REQUIRE_REGISTRATION=${require_registration}
