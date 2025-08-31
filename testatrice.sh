@@ -116,43 +116,39 @@ fi
 
 podman network exists testatrice-network
 if [ $? -ne 0 ]; then
+  echo "Creating testatrice-network network..."
   sed -i 's/"cniVersion": "1\.0\.0"/"cniVersion": "0\.4\.0"/' $(podman network create testatrice-network)
 fi
 
 podman image exists testatrice-server
 if [ $? -ne 0 ]; then
-  echo "Building server image..."
-  podman build --file testatrice-server.dockerfile -t testatrice-server
-  echo ""
+  echo "Building testatrice-server image. This may take a while..."
+  podman build --file testatrice-server.dockerfile -t testatrice-server > /dev/null
 fi
 
 podman image exists testatrice-database
 if [ $? -ne 0 ]; then
-  echo "Building database image..."
-  podman build --file testatrice-database.dockerfile -t testatrice-database
-  echo ""
+  echo "Building testatrice-database image..."
+  podman build --file testatrice-database.dockerfile -t testatrice-database > /dev/null
 fi
 
 podman container exists testatrice-database
 if [ $? -ne 0 ]; then
-  echo "Starting database container (this causes the script to sleep for ${sleep_time} seconds)..."
+  echo "Starting testatrice-database container (this causes the script to sleep for ${sleep_time} seconds)..."
   podman run --network=testatrice-network --detach --rm -h testatrice-database --name testatrice-database testatrice-database --sql-mode="NO_AUTO_VALUE_ON_ZERO" > /dev/null
-  echo ""
   sleep ${sleep_time}s
 fi
 
 podman image exists testatrice-mailserver
 if [ $? -ne 0 ]; then
-  echo "Building mail server image..."
-  podman build --file testatrice-mailserver.dockerfile -t testatrice-mailserver
-  echo ""
+  echo "Building testatrice-mailserver image..."
+  podman build --file testatrice-mailserver.dockerfile -t testatrice-mailserver > /dev/null
 fi
 
 podman container exists testatrice-mailserver
 if [ $? -ne 0 ]; then
-  echo "Starting mail server container..."
+  echo "Starting testatrice-mailserver container..."
   podman run --network=testatrice-network --detach -v ${log_path}/mails:/mailserver/mails --rm -h testatrice-mailserver --name testatrice-mailserver -p 1110:1110 -p 1111:1111 testatrice-mailserver > /dev/null
-  echo ""
 fi
 
 export TESTATRICE_SERVER_IDENTIFIER=${server_identifier}
@@ -190,11 +186,12 @@ mkdir ${sql_dir}
 envsubst < testatrice.ini.envsubst-template > ${ini_dir}/testatrice.ini
 envsubst < testatrice.sql.envsubst-template > ${sql_dir}/testatrice.sql
 
+echo "Setting up testatrice-database..."
 podman exec -u root testatrice-database /bin/bash -c "mkdir -p /home/mysql"
-podman exec -u root testatrice-database /bin/bash -c "chown mysql:mysql /home/mysql"
 podman cp ${sql_dir}/testatrice.sql testatrice-database:/home/mysql/${server_identifier}.sql
-podman exec testatrice-database /bin/bash -c "mysql < /home/mysql/${server_identifier}.sql"
+podman exec -u root testatrice-database /bin/bash -c "mysql < /home/mysql/${server_identifier}.sql"
 
-podman run --network=testatrice-network --detach -v ${log_path}:/var/log/servatrice -v ${ini_dir}:/home/servatrice/config --rm -h testatrice-server-${server_identifier} --name testatrice-server-${server_identifier} -p ${tcp_port}:4747 -p ${websocket_port}:4748 testatrice-server
+echo "Running testatrice-server-${server_identifier} container..."
+podman run --network=testatrice-network --detach -v ${log_path}:/var/log/servatrice -v ${ini_dir}:/home/servatrice/config --rm -h testatrice-server-${server_identifier} --name testatrice-server-${server_identifier} -p ${tcp_port}:4747 -p ${websocket_port}:4748 testatrice-server > /dev/null
 
 echo ${tmp_dir}
