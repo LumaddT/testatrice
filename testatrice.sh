@@ -115,17 +115,17 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ ! -f ${ini_template} ]; then
+if [ ! -f "${ini_template}" ]; then
     echo "File ${ini_template} not found."
     exit 3;
 fi
 
-if [ ! -f ${sql_template} ]; then
+if [ ! -f "${sql_template}" ]; then
     echo "File ${sql_template} not found."
     exit 4;
 fi
 
-mkdir -p ${log_path}/mails
+mkdir -p "${log_path}/mails"
 
 podman container exists testatrice-server-${server_identifier}
 if [ $? -eq 0 ]; then
@@ -167,7 +167,7 @@ fi
 podman container exists testatrice-mailserver
 if [ $? -ne 0 ]; then
   echo "Starting testatrice-mailserver container..."
-  podman run --network=testatrice-network --detach -v ${log_path}/mails:/mailserver/mails --rm -h testatrice-mailserver --name testatrice-mailserver -p 1110:1110 -p 1111:1111 testatrice-mailserver > /dev/null
+  podman run --network=testatrice-network --detach -v "${log_path}/mails":/mailserver/mails --rm -h testatrice-mailserver --name testatrice-mailserver -p 1110:1110 -p 1111:1111 testatrice-mailserver > /dev/null
 fi
 
 export TESTATRICE_SERVER_IDENTIFIER=${server_identifier}
@@ -203,8 +203,8 @@ sql_dir=${tmp_dir}/sql
 mkdir ${ini_dir}
 mkdir ${sql_dir}
 
-envsubst < ${ini_template} > ${ini_dir}/testatrice.ini
-envsubst < ${sql_template} > ${sql_dir}/testatrice.sql
+envsubst < "${ini_template}" > ${ini_dir}/testatrice.ini
+envsubst < "${sql_template}" > ${sql_dir}/testatrice.sql
 
 echo "Setting up testatrice-database..."
 podman exec -u root testatrice-database /bin/bash -c "mkdir -p /home/mysql"
@@ -212,6 +212,6 @@ podman cp ${sql_dir}/testatrice.sql testatrice-database:/home/mysql/${server_ide
 podman exec -u root testatrice-database /bin/bash -c "mysql < /home/mysql/${server_identifier}.sql"
 
 echo "Running testatrice-server-${server_identifier} container..."
-podman run --network=testatrice-network --detach -v ${log_path}:/var/log/servatrice -v ${ini_dir}:/home/servatrice/config --rm -h testatrice-server-${server_identifier} --name testatrice-server-${server_identifier} -p ${tcp_port}:4747 -p ${websocket_port}:4748 testatrice-server > /dev/null
+podman run --network=testatrice-network --detach -v "${log_path}":/var/log/servatrice -v ${ini_dir}:/home/servatrice/config --rm -h testatrice-server-${server_identifier} --name testatrice-server-${server_identifier} -p ${tcp_port}:4747 -p ${websocket_port}:4748 testatrice-server > /dev/null
 
 echo ${tmp_dir}
