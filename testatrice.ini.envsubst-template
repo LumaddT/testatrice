@@ -38,7 +38,7 @@ minpasswordlength=${TESTATRICE_PASSWORD_MIN_LENGTH}
 
 [registration]
 enabled=${TESTATRICE_ENABLE_REGISTRATION}
-requireemail=${TESTATRICE_REQUIRE_EMAIL_ACTIVATION}
+requireemail=${TESTATRICE_REQUIRE_EMAIL}
 requireemailactivation=${TESTATRICE_REQUIRE_EMAIL_ACTIVATION}
 maxaccountsperemail=${TESTATRICE_MAX_ACCOUNTS_PER_EMAIL}
 ;emailproviderblacklist=""

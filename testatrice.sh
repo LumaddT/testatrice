@@ -11,6 +11,7 @@ authentication_method='sql'
 common_password='password'
 enable_registration='false'
 require_registration='false'
+require_email='false'
 require_email_activation='false'
 max_accounts_per_email='2'
 enable_forgot_password='false'
@@ -48,6 +49,7 @@ print_usage() {
   echo "  -p, --password [string]                   : the common password to be used if the 'password' authentication method is selected ['password']"
   echo "  -er, --enable-registration"
   echo "  -rr, --require-registration"
+  echo "  -re, --require-email                      : require an email address to register"
   echo "  -ra, --require-activation                 : require email activation"
   echo "  -ma, --max-accounts-per-email [int]       : [2]"
   echo "  -ef, --enable-forgot-password"
@@ -67,7 +69,7 @@ print_usage() {
   echo "  -r, --rooms-method [string]               : source for rooms information. Valid values: config|sql [config]"
   echo "  -i, --max-game-inactivity-time [int]      : max time all players in a game can stay inactive before the game is closed, in seconds [120]"
   echo "  -l, --log-path [string]                   : directory path for the log file in the local host ['./logs']"
-  echo "  --sleep                                   : how long to sleep after the database image is started, in seconds [30]"
+  echo "  --sleep [int]                             : how long to sleep after the database image is started, in seconds [30]"
   echo "                                              The database requires some time to start completely and become usable."
 }
 
@@ -83,6 +85,7 @@ while [ $# -gt 0 ]; do
     -p|--password) common_password=$2; shift 2 ;;
     -er|--enable-registration) enable_registration='true'; shift ;;
     -rr|--require-registration) require_registration='true'; shift ;;
+    -re|--require-email) require_email='true'; shift ;;
     -ra|--require-activation) require_email_activation='true'; shift ;;
     -ma|--max-accounts-per-email) max_accounts_per_email=$2; shift 2 ;;
     -ef|--enable-forgot-password) enable_forgot_password='true'; shift ;;
@@ -95,7 +98,7 @@ while [ $# -gt 0 ]; do
     -udu|--username-disallow-uppercase) allow_uppercase='false', shift ;;
     -udn|--username-disallow-numerics) allow_numerics='false', shift ;;
     -ap|--allowed-punctuation) allowed_punctuation=$2; shift 2 ;;
-    -app|--allow-punctuation-prefix) allow_punctuation_prefix='false', shift ;;
+    -app|--allow-punctuation-prefix) allow_punctuation_prefix='true', shift ;;
     -dw|--disallowed-words) username_disallowed_words=$2; shift 2 ;;
     -r|--rooms-method) rooms_method=$2; shift 2 ;;
     -i|--max-game-inactivity-time) max_game_inactivity_time=$2; shift 2 ;;
@@ -159,6 +162,7 @@ export TESTATRICE_AUTHENTICATION_METHOD=${authentication_method}
 export TESTATRICE_COMMON_PASSWORD=${common_password}
 export TESTATRICE_ENABLE_REGISTRATION=${enable_registration}
 export TESTATRICE_REQUIRE_REGISTRATION=${require_registration}
+export TESTATRICE_REQUIRE_EMAIL=${require_email}
 export TESTATRICE_REQUIRE_EMAIL_ACTIVATION=${require_email_activation}
 export TESTATRICE_MAX_ACCOUNTS_PER_EMAIL=${max_accounts_per_email}
 export TESTATRICE_ENABLE_FORGOT_PASSWORD=${enable_forgot_password}
