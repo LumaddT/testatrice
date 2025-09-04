@@ -33,6 +33,8 @@ rooms_method='config'
 max_game_inactivity_time='120'
 log_path='./logs'
 sleep_time=30
+ini_template='./testatrice.ini.envsubst-template'
+sql_template='./testatrice.sql.envsubst-template'
 
 print_usage() {
   echo "None of the arguments is validated."
@@ -45,7 +47,7 @@ print_usage() {
   echo "  -rf, --required-features [string]         : client required features, comma separated ['']"
   echo "  -to, --idle-client-timeout [int]          : max time a player can stay connected but idle, in seconds. 0 = disabled [3600]"
   echo "Registration and authentication:"
-  echo "  -am, --authentication-method [string]     : valid values: none|password|sql [sql]"
+  echo "  -am, --authentication-method [string]     : valid values: none|password|sql ['sql']"
   echo "  -p, --password [string]                   : the common password to be used if the 'password' authentication method is selected ['password']"
   echo "  -er, --enable-registration"
   echo "  -rr, --require-registration"
@@ -62,7 +64,7 @@ print_usage() {
   echo "  -udl, --username-disallow-lowercase       : do not allow lowercase letters in the username"
   echo "  -udu, --username-disallow-uppercase       : do not allow uppercase letters in the username"
   echo "  -udn, --username-disallow-numerics        : do not allow digits in the username"
-  echo "  -ap, --allowed-punctuation [string]       : a string of punctuation marks which can be accepted in the username [_.-]"
+  echo "  -ap, --allowed-punctuation [string]       : a string of punctuation marks which can be accepted in the username ['_.-']"
   echo "  -app, --allow-punctuation-prefix          : allow a punctuation mark to be the first character in a username"
   echo "  -dw, --disallowed-words [string]          : comma separated list of words not to be allowed in a username ['']"
   echo "Misc:"
@@ -71,6 +73,8 @@ print_usage() {
   echo "  -l, --log-path [string]                   : directory path for the log file in the local host ['./logs']"
   echo "  --sleep [int]                             : how long to sleep after the database image is started, in seconds [30]"
   echo "                                              The database requires some time to start completely and become usable."
+  echo "  --ini-template [string]                   : path to the envsub template file for testatrice.ini ['./testatrice.ini.envsubst-template']"
+  echo "  --sql-template [string]                   : path to the envsub template file for testatrice.sql ['./testatrice.sql.envsubst-template']"
 }
 
 while [ $# -gt 0 ]; do
@@ -104,10 +108,22 @@ while [ $# -gt 0 ]; do
     -i|--max-game-inactivity-time) max_game_inactivity_time=$2; shift 2 ;;
     -l|--log-path) log_path=$2; shift 2 ;;
     --sleep) sleep_time=$2; shift 2 ;;
+    --ini-template) ini_template=$2; shift 2 ;;
+    --sql-template) sql_template=$2; shift 2 ;;
     -h|--help) print_usage; exit 0 ;;
     *) echo "Unknown flag $1"; echo ""; print_usage; exit 1 ;;
   esac
 done
+
+if [ ! -f ${ini_template} ]; then
+    echo "File ${ini_template} not found."
+    exit 3;
+fi
+
+if [ ! -f ${sql_template} ]; then
+    echo "File ${sql_template} not found."
+    exit 4;
+fi
 
 mkdir -p ${log_path}/mails
 
@@ -187,8 +203,8 @@ sql_dir=${tmp_dir}/sql
 mkdir ${ini_dir}
 mkdir ${sql_dir}
 
-envsubst < testatrice.ini.envsubst-template > ${ini_dir}/testatrice.ini
-envsubst < testatrice.sql.envsubst-template > ${sql_dir}/testatrice.sql
+envsubst < ${ini_template} > ${ini_dir}/testatrice.ini
+envsubst < ${sql_template} > ${sql_dir}/testatrice.sql
 
 echo "Setting up testatrice-database..."
 podman exec -u root testatrice-database /bin/bash -c "mkdir -p /home/mysql"
