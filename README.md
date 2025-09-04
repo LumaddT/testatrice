@@ -11,9 +11,6 @@ A rough but quick way to start a servatrice instance with database connection.
 ```
 git clone https://github.com/LumaddT/testatrice.git
 cd testatrice
-
-chomd +x testatrice.sh
-
 ./testatrice.sh --help
 ```
 
