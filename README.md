@@ -56,6 +56,8 @@ Misc:
   -l, --log-path [string]                   : directory path for the log file in the local host ['./logs']
   --sleep [int]                             : how long to sleep after the database image is started, in seconds [30]
                                               The database requires some time to start completely and become usable.
+  --ini-template [string]                   : path to the envsub template file for testatrice.ini ['./testatrice.ini.envsubst-template']
+  --sql-template [string]                   : path to the envsub template file for testatrice.sql ['./testatrice.sql.envsubst-template']
 ```
 
 For each server instance, a user with server admin privileges is created in the database with username `Admin` and
