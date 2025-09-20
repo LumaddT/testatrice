@@ -207,7 +207,9 @@ class TestServer:
     @staticmethod
     def __create_network(podman_client: podman.PodmanClient):
         if not podman_client.networks.exists(TestServer._NETWORK_NAME):
-            podman_client.networks.create(TestServer._NETWORK_NAME)
+            podman_client.networks.create(
+                name=TestServer._NETWORK_NAME, dns_enabled=True
+            )
 
     @staticmethod
     def __start_database(podman_client: podman.PodmanClient):
@@ -289,8 +291,11 @@ class TestServer:
         # as soon as the socket is available. Maybe there is a better way to
         # go about this, but for now this will do.
 
+        max_attempts = 300
+        attempt = 0
         exit_code, _ = database_container.exec_run("mysql")
-        while exit_code == 0:
+        while exit_code == 0 and attempt < max_attempts:
+            attempt += 1
             time.sleep(0.2)
             exit_code, _ = database_container.exec_run("mysql")
 
@@ -307,8 +312,7 @@ class TestServer:
             TestServer._DATABASE_NAME
         )
 
-        fixed_sql = rendered_sql.replace("`", "\`").replace('"', '\\"')
-
+        fixed_sql = rendered_sql.replace("`", "\\`").replace('"', '\\"')
         sql_command = f'/bin/bash -c "mysql <<EOF\n{fixed_sql}\nEOF"'
         database_container.exec_run(
             cmd=sql_command,
@@ -341,11 +345,9 @@ class TestServer:
             )
 
         server_container = podman_client.containers.get(self.container_name)
-
         server_container.start()
 
         fixed_ini = rendered_ini.replace('"', '\\"')
-
         config_command = f'/bin/bash -c "cat <<EOF > /home/servatrice/config/testatrice.ini\n{fixed_ini}\nEOF"'
         server_container.exec_run(
             cmd=config_command,
@@ -427,7 +429,6 @@ class TestServer:
             ConnectionError: If the podman service is not available. Run
               ``podman system service -t 0 &`` to solve.
         """
-
         with podman.PodmanClient() as podman_client:
             if not podman_client.ping():
                 raise ConnectionError("The podman service did not respond.")

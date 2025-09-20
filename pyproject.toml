@@ -3,7 +3,7 @@ name = "testatrice"
 version = "0.1.0"
 maintainers = [{ name = "LumaddT" }]
 description = "Start servatrice instances in Python."
-readme = { file = "README.txt", content-type = "text/markdown" }
+readme = { file = "README.md", content-type = "text/markdown" }
 license = "GPL-2.0"
 keywords = ["cockatrice",
     "servatrice",
@@ -25,3 +25,14 @@ dependencies = ["podman>=5.6.0",
 dev = ["black>=25.9.0",
     "isort>=6.0.1",
 ]
+
+[build-system]
+requires = ["setuptools>=80.9.0",
+    "wheel", ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+testatrice = ["templates/*.j2",
+    "dockerfiles/*.dockerfile",
+    "dockerfiles/resources/mock_mailserver.py",
+    "dockerfiles/resources/server_entry_point.sh"]
