@@ -1,5 +1,5 @@
 [server]
-name="Testatrice instance: ${TESTATRICE_SERVER_IDENTIFIER}"
+name="Testatrice instance: {{ server_identifier }}"
 id=1
 host=any
 port=4747
@@ -9,47 +9,47 @@ websocket_host=any
 websocket_port=4748
 statusupdate=15000
 writelog=1
-logfile=/var/log/servatrice/${TESTATRICE_SERVER_IDENTIFIER}.log
+logfile=/var/log/servatrice/{{ server_identifier }}.log
 logfilters=""
 clientkeepalive=1
 max_player_inactivity_time=15
-requireclientid=${TESTATRICE_REQUIRE_CLIENT_ID}
-requiredfeatures="${TESTATRICE_REQUIRED_FEATURES}"
+requireclientid={{ require_client_id }}
+requiredfeatures="{{ required_features }}"
 officialwarnings="Flaming,Spamming,Causing Drama,Abusive Language"
-idleclienttimeout=${TESTATRICE_IDLE_CLIENT_TIMEOUT}
+idleclienttimeout={{ idle_client_timeout }}
 
 [authentication]
-method=${TESTATRICE_AUTHENTICATION_METHOD}
-password=${TESTATRICE_COMMON_PASSWORD}
-regonly=${TESTATRICE_REQUIRE_REGISTRATION}
+method={{ authentication_method }}
+password={{ common_password }}
+regonly={{ require_registration }}
 
 [users]
-minnamelength=${TESTATRICE_USERNAME_MIN_LENGTH}
-maxnamelength=${TESTATRICE_USERNAME_MAX_LENGTH}
-allowlowercase=${TESTATRICE_ALLOW_LOWERCASE}
-allowuppercase=${TESTATRICE_ALLOW_UPPERCASE}
-allownumerics=${TESTATRICE_ALLOW_NUMERICS}
-allowedpunctuation=${TESTATRICE_ALLOWED_PUNCTUATION}
-allowpunctuationprefix=${TESTATRICE_ALLOW_PUNCTUATION_PREFIX}
-disallowedwords="${TESTATRICE_USERNAME_DISALLOWED_WORDS}"
+minnamelength={{ username_min_length }}
+maxnamelength={{ username_max_length }}
+allowlowercase={{ allow_lowercase }}
+allowuppercase={{ allow_uppercase }}
+allownumerics={{ allow_numerics }}
+allowedpunctuation={{ allowed_punctuation }}
+allowpunctuationprefix={{ allow_punctuation_prefix }}
+disallowedwords="{{ username_disallowed_words }}"
 ;displaydisallowedwords="no attempts at impersonating staff\nno unparliamentary language\nno references to controversial figures\nstaff reserves the right to remove accounts deemed inappropriate"
 ;disallowedregexp=""
-minpasswordlength=${TESTATRICE_PASSWORD_MIN_LENGTH}
+minpasswordlength={{ password_min_length }}
 
 [registration]
-enabled=${TESTATRICE_ENABLE_REGISTRATION}
-requireemail=${TESTATRICE_REQUIRE_EMAIL}
-requireemailactivation=${TESTATRICE_REQUIRE_EMAIL_ACTIVATION}
-maxaccountsperemail=${TESTATRICE_MAX_ACCOUNTS_PER_EMAIL}
+enabled={{ enable_registration }}
+requireemail={{ require_email }}
+requireemailactivation={{ require_email_activation }}
+maxaccountsperemail={{ max_accounts_per_email }}
 ;emailproviderblacklist=""
 ;emailproviderwhitelist=""
 
 [forgotpassword]
-enable=${TESTATRICE_ENABLE_FORGOT_PASSWORD}
-tokenlife=${TESTATRICE_FORGOT_PASSWORD_TOKEN_LIFE}
-enablechallenge=${TESTATRICE_ENABLE_FORGOT_PASSWORD_CHALLENGE}
-subject="${TESTATRICE_SERVER_IDENTIFIER} reset password token"
-body="${TESTATRICE_SERVER_IDENTIFIER}\n%username\nReset\n%token\n"
+enable={{ enable_forgot_password }}
+tokenlife={{ forgot_password_token_life }}
+enablechallenge={{ enable_forgot_password_challenge }}
+subject="{{ server_identifier }} reset password token"
+body="{{ server_identifier }}\n%username\nReset\n%token\n"
 
 [smtp]
 enableinternalsmtpclient=true
@@ -59,21 +59,21 @@ host=testatrice-mailserver.dns.podman
 port=25
 ;username=servatrice@testatrice-mailserver
 ;password=password
-email=${TESTATRICE_SERVER_IDENTIFIER}@testatrice-mailserver
+email={{ server_identifier }}@testatrice-mailserver
 ;name="Testatrice server"
-subject="${TESTATRICE_SERVER_IDENTIFIER} account activation token"
-body="${TESTATRICE_SERVER_IDENTIFIER}\n%username\nActivation\n%token\n"
+subject="{{ server_identifier }} account activation token"
+body="{{ server_identifier }}\n%username\nActivation\n%token\n"
 
 [database]
 type=mysql
-prefix=${TESTATRICE_SERVER_IDENTIFIER}
+prefix={{ server_identifier }}
 hostname=testatrice-database.dns.podman
 database=servatrice
 user=servatrice
 password=password
 
 [rooms]
-method=${TESTATRICE_ROOMS_METHOD}
+method={{ rooms_method }}
 roomlist\size=4
 
 roomlist\1\name="General room"
@@ -125,7 +125,7 @@ roomlist\4\game_types\2\name="AdmGameType2"
 roomlist\4\game_types\3\name="AdmGameType3"
 
 [game]
-max_game_inactivity_time=${TESTATRICE_MAX_GAME_INACTIVITY_TIME}
+max_game_inactivity_time={{ max_game_inactivity_time }}
 store_replays=true
 allow_create_as_judge=true
 
