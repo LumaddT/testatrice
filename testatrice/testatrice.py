@@ -54,6 +54,7 @@ class TestServer:
 
     def __init__(
         self,
+        *,
         server_identifier: str = None,
         tcp_port: int = None,
         websocket_port: int = None,
