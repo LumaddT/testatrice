@@ -14,6 +14,9 @@ class TestServer:
     """
     The interface to run a testatrice instances in podman containers.
 
+    If a server identifier, TCP port or WebSocket port are not provided or are passed as None,
+    they will be chosen randomly.
+
     Attributes:
         server_identifier (str): The identifier for the server, used in the
           container name, as part of the servatrice instance name, and as the
@@ -30,7 +33,7 @@ class TestServer:
           in use.
     """
 
-    _DOCKERFILES_CONTEXT = f"{os.path.dirname(__file__)}/dockerfiles/"
+    _DOCKERFILES_CONTEXT: str = f"{os.path.dirname(__file__)}/dockerfiles/"
     _DATABASE_DOCKERFILE: str = "testatrice-database.dockerfile"
     _MAILSERVER_DOCKERFILE: str = "testatrice-mailserver.dockerfile"
     _SERVER_DOCKERFILE: str = "testatrice-server.dockerfile"
@@ -65,11 +68,11 @@ class TestServer:
         require_email_activation: bool = False,
         max_accounts_per_email: int = 2,
         enable_forgot_password: bool = True,
-        forgot_password_token_life: bool = 60,
+        forgot_password_token_life: int = 60,
         enable_forgot_password_challenge: bool = False,
         password_min_length: int = 6,
         username_min_length: int = 6,
-        username_max_length=12,
+        username_max_length: int = 12,
         allow_lowercase: bool = True,
         allow_uppercase: bool = True,
         allow_numerics: bool = True,
