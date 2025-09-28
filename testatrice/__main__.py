@@ -1,12 +1,17 @@
 import argparse
 import pathlib
 
+import podman
+
 from testatrice import TestServer
 
 
 def main():
     parser = generate_parser()
     args = parser.parse_args()
+
+    if args.verbose and not args.silent:
+        TestServer.Logger.enable()
 
     match args.command:
         case "server":
@@ -337,11 +342,30 @@ def server(args):
 
 
 def build_environment(args):
+    with podman.PodmanClient() as podman_client:
+        if not podman_client.ping():
+            message = "The podman service did not respond."
+            TestServer.Logger.log(message)
+            raise ConnectionError(message)
+
+        TestServer.build_environment(podman_client, recreate=args.recreate)
     pass
 
 
 def stop(args):
-    pass
+    if args.all:
+        TestServer.destroy_environment()
+    elif args.servers:
+        TestServer.stop_all_server_containers()
+    elif args.server_identifier is not None:
+        try:
+            TestServer.stop_server(args.server_identifier)
+        except RuntimeError:
+            pass
+    else:
+        TestServer.Logger.log(
+            "An illegal state was reached. Please report this as a bug."
+        )
 
 
 if __name__ == "__main__":
