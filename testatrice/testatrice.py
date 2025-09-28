@@ -626,11 +626,11 @@ class TestServer:
                     raise
 
     class Logger:
-        enabled = False
+        _enabled = False
 
         @staticmethod
         def log(message: str | Iterator[bytes]) -> None:
-            if TestServer.Logger.enabled:
+            if TestServer.Logger._enabled:
                 if message.__class__ == str:
                     print(f"[{datetime.now()}] {message}")
                 else:  # Iterator from podman logs
@@ -643,3 +643,11 @@ class TestServer:
         @staticmethod
         def __iterator_line_to_string(line: bytes) -> str:
             return json.loads(line)["stream"]
+
+        @staticmethod
+        def enable():
+            TestServer.Logger._enabled = True
+
+        @staticmethod
+        def disable():
+            TestServer.Logger._enabled = False
