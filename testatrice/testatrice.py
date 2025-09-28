@@ -496,7 +496,7 @@ class TestServer:
                 TestServer.Logger.log(message)
                 raise ConnectionError(message)
 
-            if podman_client.containers.exists(self.container_name):
+            if not podman_client.containers.exists(self.container_name):
                 message = f"No test server with identifier {self.server_identifier} exists."
                 TestServer.Logger.log(message)
                 raise RuntimeError(message)
@@ -513,6 +513,40 @@ class TestServer:
             TestServer.Logger.log(
                 f"Stopping {self.server_identifier} container..."
             )
+            server_container.stop()
+
+    @staticmethod
+    def stop_server(server_identifier: str):
+        """
+        Stops this testatrice-server instance.
+
+        Raises:
+            ConnectionError: If the podman service is not available. Run
+              ``podman system service -t 0 &`` to solve.
+            RuntimeError: If a container using this same identifier does not
+              exist or is not running.
+        """
+        container_name = TestServer._BASE_SERVER_NAME + "-" + server_identifier
+
+        with podman.PodmanClient() as podman_client:
+            if not podman_client.ping():
+                message = "The podman service did not respond."
+                TestServer.Logger.log(message)
+                raise ConnectionError(message)
+
+            if not podman_client.containers.exists(container_name):
+                message = f"No test server with identifier {server_identifier} exists."
+                TestServer.Logger.log(message)
+                raise RuntimeError(message)
+
+            server_container = podman_client.containers.get(container_name)
+
+            if server_container.status != "running":
+                message = f"No test server with identifier {server_identifier} is running."
+                TestServer.Logger.log(message)
+                raise RuntimeError(message)
+
+            TestServer.Logger.log(f"Stopping {container_name} container...")
             server_container.stop()
 
     @staticmethod
