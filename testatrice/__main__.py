@@ -151,6 +151,7 @@ def generate_parser():
         "--password",
         type=str,
         help="The common password to be used if the 'password' authentication method is selected (default: password)",
+        dest="common_password",
         default="password",
     )
     servatrice_configuration_group.add_argument(
@@ -179,6 +180,7 @@ def generate_parser():
         "--require-activation",
         action="store_true",
         help="Require users to verify their email address (default: not required)",
+        dest="require_email_activation",
         default=False,
     )
     servatrice_configuration_group.add_argument(
@@ -338,7 +340,48 @@ def generate_parser():
 
 
 def server(args):
-    pass
+    test_server = TestServer(
+        server_identifier=args.server_identifier,
+        tcp_port=args.tcp_port,
+        websocket_port=args.websocket_port,
+        require_client_id=args.require_client_id,
+        required_features=args.required_features,
+        idle_client_timeout=args.idle_client_timeout,
+        authentication_method=args.authentication_method,
+        common_password=args.common_password,
+        enable_registration=args.enable_registration,
+        require_registration=args.require_registration,
+        require_email=args.require_email,
+        require_email_activation=args.require_email_activation,
+        max_accounts_per_email=args.max_accounts_per_email,
+        enable_forgot_password=args.enable_forgot_password,
+        forgot_password_token_life=args.forgot_password_token_life,
+        enable_forgot_password_challenge=args.enable_forgot_password_challenge,
+        password_min_length=args.password_min_length,
+        username_min_length=args.username_min_length,
+        username_max_length=args.username_max_length,
+        allow_lowercase=args.allow_lowercase,
+        allow_uppercase=args.allow_uppercase,
+        allow_numerics=args.allow_numerics,
+        allowed_punctuation=args.allowed_punctuation,
+        allow_punctuation_prefix=args.allow_punctuation_prefix,
+        rooms_method=args.rooms_method,
+        max_game_inactivity_time=args.max_game_inactivity_time,
+        log_path=args.log_path,
+    )
+    test_server.start()
+
+    if not args.silent:
+        print_values = {
+            "server_identifier": test_server.server_identifier,
+            "container_name": test_server.container_name,
+            "tcp_port": test_server.tcp_port,
+            "websocket_port": test_server.websocket_port,
+            "websocket_url": test_server.ws_url,
+            "log_path": test_server.log_path,
+        }
+
+        print(print_values)
 
 
 def build_environment(args):
