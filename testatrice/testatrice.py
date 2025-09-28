@@ -183,7 +183,9 @@ class TestServer:
             self.__start_server(podman_client, rendered_ini)
 
     @staticmethod
-    def build_environment(podman_client: podman.PodmanClient):
+    def build_environment(
+        podman_client: podman.PodmanClient, recreate: bool = False
+    ):
         """
         Create the ``testatrice-network`` network if not already present,
         build the necessary images if not already present,
@@ -206,12 +208,15 @@ class TestServer:
         Arguments:
             podman_client (podman.PodmanClient): An active podman.PodmanClient
               instance.
+            recreate (bool): Set to True if the images should be recreated
+              from scratch even if they already exist. The currently existing
+              images will be removed.
         """
 
         TestServer.__create_network(podman_client)
-        TestServer.__start_database(podman_client)
-        TestServer.__start_mailserver(podman_client)
-        TestServer.__build_base_server(podman_client)
+        TestServer.__start_database(podman_client, recreate=recreate)
+        TestServer.__start_mailserver(podman_client, recreate=recreate)
+        TestServer.__build_base_server(podman_client, recreate=recreate)
 
     @staticmethod
     def __create_network(podman_client: podman.PodmanClient):
@@ -226,7 +231,15 @@ class TestServer:
             )
 
     @staticmethod
-    def __start_database(podman_client: podman.PodmanClient):
+    def __start_database(
+        podman_client: podman.PodmanClient, recreate: bool = False
+    ):
+        if recreate and podman_client.images.exists(TestServer._DATABASE_NAME):
+            TestServer.Logger.log(
+                f"Removing {TestServer._DATABASE_NAME} image..."
+            )
+            podman_client.images.remove(TestServer._DATABASE_NAME)
+
         if not podman_client.images.exists(TestServer._DATABASE_NAME):
             TestServer.Logger.log(
                 f"Creating {TestServer._DATABASE_NAME} image..."
@@ -235,6 +248,7 @@ class TestServer:
                 path=TestServer._DOCKERFILES_CONTEXT,
                 dockerfile=TestServer._DATABASE_DOCKERFILE,
                 tag=TestServer._DATABASE_NAME,
+                nocache=recreate,
             )
 
             TestServer.Logger.log(result[1])
@@ -277,7 +291,17 @@ class TestServer:
             )
 
     @staticmethod
-    def __start_mailserver(podman_client: podman.PodmanClient):
+    def __start_mailserver(
+        podman_client: podman.PodmanClient, recreate: bool = False
+    ):
+        if recreate and podman_client.images.exists(
+            TestServer._MAILSERVER_NAME
+        ):
+            TestServer.Logger.log(
+                f"Removing {TestServer._MAILSERVER_NAME} image..."
+            )
+            podman_client.images.remove(TestServer._MAILSERVER_NAME)
+
         if not podman_client.images.exists(TestServer._MAILSERVER_NAME):
             TestServer.Logger.log(
                 f"Creating {TestServer._MAILSERVER_NAME} image..."
@@ -287,6 +311,7 @@ class TestServer:
                 path=TestServer._DOCKERFILES_CONTEXT,
                 dockerfile=TestServer._MAILSERVER_DOCKERFILE,
                 tag=TestServer._MAILSERVER_NAME,
+                nocache=recreate,
             )
 
             TestServer.Logger.log(result[1])
@@ -328,7 +353,17 @@ class TestServer:
             )
 
     @staticmethod
-    def __build_base_server(podman_client: podman.PodmanClient):
+    def __build_base_server(
+        podman_client: podman.PodmanClient, recreate: bool = False
+    ):
+        if recreate and podman_client.images.exists(
+            TestServer._BASE_SERVER_NAME
+        ):
+            TestServer.Logger.log(
+                f"Removing {TestServer._BASE_SERVER_NAME} image..."
+            )
+            podman_client.images.remove(TestServer._BASE_SERVER_NAME)
+
         if not podman_client.images.exists(TestServer._BASE_SERVER_NAME):
             TestServer.Logger.log(
                 f"Creating {TestServer._BASE_SERVER_NAME} image..."
@@ -337,6 +372,7 @@ class TestServer:
                 path=TestServer._DOCKERFILES_CONTEXT,
                 dockerfile=TestServer._SERVER_DOCKERFILE,
                 tag=TestServer._BASE_SERVER_NAME,
+                nocache=recreate,
             )
 
             TestServer.Logger.log(result[1])
