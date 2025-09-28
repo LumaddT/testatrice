@@ -1,8 +1,11 @@
 import errno
+import json
 import os
 import socket
 import time
+from datetime import datetime
 from enum import Enum
+from typing import Iterator
 
 import jinja2
 import podman
@@ -105,7 +108,7 @@ class TestServer:
         self._websocket_port = websocket_port
 
         self.log_path = log_path
-        self.ws_url: str = f"ws://localhost:{self._websocket_port}"
+        self.ws_url = f"ws://localhost:{self._websocket_port}"
 
         self._template_variables = {
             "server_identifier": self.server_identifier,
@@ -154,12 +157,14 @@ class TestServer:
 
         with podman.PodmanClient() as podman_client:
             if not podman_client.ping():
-                raise ConnectionError("The podman service did not respond.")
+                message = "The podman service did not respond."
+                TestServer.Logger.log(message)
+                raise ConnectionError(message)
 
             if podman_client.containers.exists(self.container_name):
-                raise RuntimeError(
-                    f"A test server with identifier {self.server_identifier} already exists."
-                )
+                message = f"A test server with identifier {self.server_identifier} already exists."
+                TestServer.Logger.log(message)
+                raise RuntimeError(message)
 
             TestServer.build_environment(podman_client)
 
@@ -211,20 +216,37 @@ class TestServer:
     @staticmethod
     def __create_network(podman_client: podman.PodmanClient):
         if not podman_client.networks.exists(TestServer._NETWORK_NAME):
+            TestServer.Logger.log("Creating testatrice network...")
             podman_client.networks.create(
                 name=TestServer._NETWORK_NAME, dns_enabled=True
+            )
+        else:
+            TestServer.Logger.log(
+                "Testatrice network already exists. Skipping creation step."
             )
 
     @staticmethod
     def __start_database(podman_client: podman.PodmanClient):
         if not podman_client.images.exists(TestServer._DATABASE_NAME):
-            podman_client.images.build(
+            TestServer.Logger.log(
+                f"Creating {TestServer._DATABASE_NAME} image..."
+            )
+            result = podman_client.images.build(
                 path=TestServer._DOCKERFILES_CONTEXT,
                 dockerfile=TestServer._DATABASE_DOCKERFILE,
                 tag=TestServer._DATABASE_NAME,
             )
 
+            TestServer.Logger.log(result[1])
+        else:
+            TestServer.Logger.log(
+                f"Image {TestServer._DATABASE_NAME} already exists. Skipping build step."
+            )
+
         if not podman_client.containers.exists(TestServer._DATABASE_NAME):
+            TestServer.Logger.log(
+                f"Creating {TestServer._DATABASE_NAME} container..."
+            )
             podman_client.containers.create(
                 image=TestServer._DATABASE_NAME,
                 auto_remove=True,
@@ -234,25 +256,49 @@ class TestServer:
                 network=TestServer._NETWORK_NAME,
                 network_mode="bridge",
             )
+        else:
+            TestServer.Logger.log(
+                f"Container {TestServer._DATABASE_NAME} already exists. Skipping creation step."
+            )
 
         database_container = podman_client.containers.get(
             TestServer._DATABASE_NAME
         )
 
         if database_container.status != "running":
+            TestServer.Logger.log(
+                f"Running {TestServer._DATABASE_NAME} container..."
+            )
             database_container.start()
             TestServer.__wait_until_database_is_up(podman_client)
+        else:
+            TestServer.Logger.log(
+                f"Container {TestServer._DATABASE_NAME} is already running. Skipping run step."
+            )
 
     @staticmethod
     def __start_mailserver(podman_client: podman.PodmanClient):
         if not podman_client.images.exists(TestServer._MAILSERVER_NAME):
-            podman_client.images.build(
+            TestServer.Logger.log(
+                f"Creating {TestServer._MAILSERVER_NAME} image..."
+            )
+
+            result = podman_client.images.build(
                 path=TestServer._DOCKERFILES_CONTEXT,
                 dockerfile=TestServer._MAILSERVER_DOCKERFILE,
                 tag=TestServer._MAILSERVER_NAME,
             )
 
+            TestServer.Logger.log(result[1])
+        else:
+            TestServer.Logger.log(
+                f"Image {TestServer._MAILSERVER_NAME} already exists. Skipping build step."
+            )
+
         if not podman_client.containers.exists(TestServer._MAILSERVER_NAME):
+            TestServer.Logger.log(
+                f"Creating {TestServer._MAILSERVER_NAME} container..."
+            )
             podman_client.containers.create(
                 image=TestServer._MAILSERVER_NAME,
                 auto_remove=True,
@@ -263,20 +309,40 @@ class TestServer:
                 network_mode="bridge",
                 ports={"1110/tcp": 1110, "1111/tcp": 1111},
             )
+        else:
+            TestServer.Logger.log(
+                f"Container {TestServer._MAILSERVER_NAME} already exists. Skipping creation step."
+            )
 
         mailserver_container = podman_client.containers.get(
             TestServer._MAILSERVER_NAME
         )
         if mailserver_container.status != "running":
+            TestServer.Logger.log(
+                f"Running {TestServer._MAILSERVER_NAME} container..."
+            )
             mailserver_container.start()
+        else:
+            TestServer.Logger.log(
+                f"Container {TestServer._MAILSERVER_NAME} is already running. Skipping run step."
+            )
 
     @staticmethod
     def __build_base_server(podman_client: podman.PodmanClient):
         if not podman_client.images.exists(TestServer._BASE_SERVER_NAME):
-            podman_client.images.build(
+            TestServer.Logger.log(
+                f"Creating {TestServer._BASE_SERVER_NAME} image..."
+            )
+            result = podman_client.images.build(
                 path=TestServer._DOCKERFILES_CONTEXT,
                 dockerfile=TestServer._SERVER_DOCKERFILE,
                 tag=TestServer._BASE_SERVER_NAME,
+            )
+
+            TestServer.Logger.log(result[1])
+        else:
+            TestServer.Logger.log(
+                f"Image {TestServer._BASE_SERVER_NAME} already exists. Skipping build step."
             )
 
     @staticmethod
@@ -285,6 +351,7 @@ class TestServer:
             TestServer._DATABASE_NAME
         )
 
+        TestServer.Logger.log("Waiting for the temporary database to sart...")
         exit_code, _ = database_container.exec_run("mysql")
         while exit_code != 0:
             time.sleep(0.2)
@@ -295,6 +362,7 @@ class TestServer:
         # as soon as the socket is available. Maybe there is a better way to
         # go about this, but for now this will do.
 
+        TestServer.Logger.log("Waiting for the temporary database to stop...")
         max_attempts = 300
         attempt = 0
         exit_code, _ = database_container.exec_run("mysql")
@@ -303,6 +371,7 @@ class TestServer:
             time.sleep(0.2)
             exit_code, _ = database_container.exec_run("mysql")
 
+        TestServer.Logger.log("Waiting for the real database to start...")
         exit_code, _ = database_container.exec_run("mysql")
         while exit_code != 0:
             time.sleep(0.2)
@@ -318,6 +387,7 @@ class TestServer:
 
         fixed_sql = rendered_sql.replace("`", "\\`").replace('"', '\\"')
         sql_command = f'/bin/bash -c "mysql <<EOF\n{fixed_sql}\nEOF"'
+        TestServer.Logger.log("Building database...")
         database_container.exec_run(
             cmd=sql_command,
             user="root",
@@ -327,10 +397,17 @@ class TestServer:
         volumes = {}
 
         if self.log_path is not None:
+            TestServer.Logger.log(
+                f"Starting {self.container_name} container with logging at {self.log_path}..."
+            )
             volumes[self.log_path] = {
                 "bind": "/var/log/servatrice",
                 "mode": "rw",
             }
+        else:
+            TestServer.Logger.log(
+                f"Starting {self.container_name} container without logging on host..."
+            )
 
         if not podman_client.containers.exists(self.container_name):
             podman_client.containers.create(
@@ -352,12 +429,18 @@ class TestServer:
         server_container.start()
 
         fixed_ini = rendered_ini.replace('"', '\\"')
+        TestServer.Logger.log(
+            "Writing servatrice configuration file to the container..."
+        )
         config_command = f'/bin/bash -c "cat <<EOF > /home/servatrice/config/testatrice.ini\n{fixed_ini}\nEOF"'
         server_container.exec_run(
             cmd=config_command,
             user="root",
         )
 
+        TestServer.Logger.log(
+            "Sleeping for 1 second for the server to start..."
+        )
         # TODO: change this to a loop with a ping when it can be done in crow
         time.sleep(1)
 
@@ -373,22 +456,27 @@ class TestServer:
         """
         with podman.PodmanClient() as podman_client:
             if not podman_client.ping():
-                raise ConnectionError("The podman service did not respond.")
+                message = "The podman service did not respond."
+                TestServer.Logger.log(message)
+                raise ConnectionError(message)
 
-            if not podman_client.containers.exists(self.container_name):
-                raise RuntimeError(
-                    f"No test server with identifier {self.server_identifier} exists."
-                )
+            if podman_client.containers.exists(self.container_name):
+                message = f"No test server with identifier {self.server_identifier} exists."
+                TestServer.Logger.log(message)
+                raise RuntimeError(message)
 
             server_container = podman_client.containers.get(
                 self.container_name
             )
 
             if server_container.status != "running":
-                raise RuntimeError(
-                    f"No test server with identifier {self.server_identifier} is running."
-                )
+                message = f"No test server with identifier {self.server_identifier} is running."
+                TestServer.Logger.log(message)
+                raise RuntimeError(message)
 
+            TestServer.Logger.log(
+                f"Stopping {self.server_identifier} container..."
+            )
             server_container.stop()
 
     @staticmethod
@@ -405,7 +493,9 @@ class TestServer:
 
         with podman.PodmanClient() as podman_client:
             if not podman_client.ping():
-                raise ConnectionError("The podman service did not respond.")
+                message = "The podman service did not respond."
+                TestServer.Logger.log(message)
+                raise ConnectionError(message)
 
             if podman_client.containers.exists(TestServer._MAILSERVER_NAME):
                 mailserver_container = podman_client.containers.get(
@@ -413,7 +503,18 @@ class TestServer:
                 )
 
                 if mailserver_container.status == "running":
+                    TestServer.Logger.log(
+                        f"Stopping {TestServer._MAILSERVER_NAME} container..."
+                    )
                     mailserver_container.stop()
+                else:
+                    TestServer.Logger.log(
+                        f"Container {TestServer._MAILSERVER_NAME} is not running. Skipping stop step."
+                    )
+            else:
+                TestServer.Logger.log(
+                    f"Container {TestServer._MAILSERVER_NAME} does not exist. Skipping stop step."
+                )
 
             if podman_client.containers.exists(TestServer._DATABASE_NAME):
                 database_container = podman_client.containers.get(
@@ -421,7 +522,18 @@ class TestServer:
                 )
 
                 if database_container.status == "running":
+                    TestServer.Logger.log(
+                        f"Stopping {TestServer._DATABASE_NAME} container..."
+                    )
                     database_container.stop()
+                else:
+                    TestServer.Logger.log(
+                        f"Container {TestServer._DATABASE_NAME} is not running. Skipping stop step."
+                    )
+            else:
+                TestServer.Logger.log(
+                    f"Container {TestServer._DATABASE_NAME} does not exist. Skipping stop step."
+                )
 
     @staticmethod
     def stop_all_server_containers() -> None:
@@ -433,9 +545,12 @@ class TestServer:
             ConnectionError: If the podman service is not available. Run
               ``podman system service -t 0 &`` to solve.
         """
+        TestServer.Logger.log("Stopping all server containers...")
         with podman.PodmanClient() as podman_client:
             if not podman_client.ping():
-                raise ConnectionError("The podman service did not respond.")
+                message = "The podman service did not respond."
+                TestServer.Logger.log(message)
+                raise ConnectionError(message)
 
             all_containers = podman_client.containers.list()
 
@@ -473,3 +588,22 @@ class TestServer:
                     return True
                 else:
                     raise
+
+    class Logger:
+        enabled = False
+
+        @staticmethod
+        def log(message: str | Iterator[bytes]) -> None:
+            if TestServer.Logger.enabled:
+                if message.__class__ == str:
+                    print(f"[{datetime.now()}] {message}")
+                else:  # Iterator from podman logs
+                    for line in message:
+                        print(
+                            TestServer.Logger.__iterator_line_to_string(line),
+                            end="",
+                        )
+
+        @staticmethod
+        def __iterator_line_to_string(line: bytes) -> str:
+            return json.loads(line)["stream"]
