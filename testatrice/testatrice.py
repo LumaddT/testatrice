@@ -5,7 +5,7 @@ import socket
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Iterator
+from typing import Iterator, Tuple
 
 import jinja2
 import podman
@@ -167,7 +167,12 @@ class TestServer:
                 TestServer.Logger.log(message)
                 raise RuntimeError(message)
 
-            TestServer.build_environment(podman_client)
+            environment_ok, message = TestServer.verify_environment(
+                podman_client
+            )
+            if not environment_ok:
+                TestServer.Logger.log(message)
+                raise RuntimeError(message)
 
             jinja_environment = jinja2.Environment(
                 loader=jinja2.PackageLoader("testatrice"),
@@ -182,6 +187,54 @@ class TestServer:
 
             self.__configure_database(podman_client, rendered_sql)
             self.__start_server(podman_client, rendered_ini)
+
+    @staticmethod
+    def verify_environment(
+        podman_client: podman.PodmanClient,
+    ) -> Tuple[bool, str]:
+        if not podman_client.networks.exists(TestServer._NETWORK_NAME):
+            return False, f"Network {TestServer._NETWORK_NAME} does not exist."
+
+        if not podman_client.containers.exists(TestServer._DATABASE_NAME):
+            return (
+                False,
+                f"Container {TestServer._DATABASE_NAME} does not exist.",
+            )
+        database_container = podman_client.containers.get(
+            TestServer._DATABASE_NAME
+        )
+        if not database_container.status != "running":
+            return (
+                False,
+                f"Container {TestServer._DATABASE_NAME} is not running.",
+            )
+        exit_code, _ = database_container.exec_run("mysql")
+        if exit_code != 0:
+            return False, f"The database cannot receive commands."
+
+        if not podman_client.containers.exists(TestServer._MAILSERVER_NAME):
+            return (
+                False,
+                f"Container {TestServer._MAILSERVER_NAME} does not exist.",
+            )
+        if (
+            not podman_client.containers.get(
+                TestServer._MAILSERVER_NAME
+            ).status
+            != "running"
+        ):
+            return (
+                False,
+                f"Container {TestServer._MAILSERVER_NAME} is not running.",
+            )
+
+        if not podman_client.images.exists(TestServer._BASE_SERVER_NAME):
+            return (
+                False,
+                f"Image {TestServer._BASE_SERVER_NAME} does not exist.",
+            )
+
+        return True, "OK"
 
     @staticmethod
     def build_environment(
