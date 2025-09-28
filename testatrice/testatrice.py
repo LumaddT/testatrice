@@ -25,7 +25,8 @@ class TestServer:
           container name, as part of the servatrice instance name, and as the
           database tables prefix.
         container_name (str): The name of the podman container.
-        tcp_port (int): The exposed TCP socket port the server listens to.
+        tcp_port (int): The exposed TCP socket port the container listens to.
+        websocket_port (int): The exposed WebSocket port the container listents to.
         ws_url (str): The full websocket URL to connect to the server, in the
           form ``ws://localhost:[port]``.
         log_path (str): The path on the local machine in which servatrice logs
@@ -105,10 +106,10 @@ class TestServer:
             websocket_port = TestServer.__get_available_port()
         elif TestServer.__is_port_used(websocket_port):
             raise ValueError(f"Port {websocket_port} is already in use.")
-        self._websocket_port = websocket_port
+        self.websocket_port = websocket_port
 
         self.log_path = log_path
-        self.ws_url = f"ws://localhost:{self._websocket_port}"
+        self.ws_url = f"ws://localhost:{self.websocket_port}"
 
         self._template_variables = {
             "server_identifier": self.server_identifier,
@@ -456,7 +457,7 @@ class TestServer:
                 network_mode="bridge",
                 ports={
                     "4747/tcp": self.tcp_port,
-                    "4748/tcp": self._websocket_port,
+                    "4748/tcp": self.websocket_port,
                 },
                 volumes=volumes,
             )
