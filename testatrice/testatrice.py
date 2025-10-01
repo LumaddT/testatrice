@@ -1,7 +1,9 @@
 import errno
 import json
 import os
+import shutil
 import socket
+import tempfile
 import time
 from datetime import datetime
 from enum import Enum
@@ -26,7 +28,7 @@ class TestServer:
           database tables prefix.
         container_name (str): The name of the podman container.
         tcp_port (int): The exposed TCP socket port the container listens to.
-        websocket_port (int): The exposed WebSocket port the container listents to.
+        websocket_port (int): The exposed WebSocket port the container listens to.
         ws_url (str): The full websocket URL to connect to the server, in the
           form ``ws://localhost:[port]``.
         log_path (str): The path on the local machine in which servatrice logs
@@ -37,10 +39,12 @@ class TestServer:
           in use.
     """
 
-    _DOCKERFILES_CONTEXT: str = f"{os.path.dirname(__file__)}/dockerfiles/"
+    _DOCKERFILES_PATH: str = f"{os.path.dirname(__file__)}/dockerfiles/"
+
     _DATABASE_DOCKERFILE: str = "testatrice-database.dockerfile"
     _MAILSERVER_DOCKERFILE: str = "testatrice-mailserver.dockerfile"
-    _SERVER_DOCKERFILE: str = "testatrice-server.dockerfile"
+    _SERVER_DOCKERFILE_GITHUB: str = "testatrice-server-github.dockerfile"
+    _SERVER_DOCKERFILE_LOCAL: str = "testatrice-server-local.dockerfile"
 
     _DATABASE_NAME: str = "testatrice-database"
     _MAILSERVER_NAME: str = "testatrice-mailserver"
@@ -203,7 +207,7 @@ class TestServer:
         database_container = podman_client.containers.get(
             TestServer._DATABASE_NAME
         )
-        if not database_container.status != "running":
+        if database_container.status != "running":
             return (
                 False,
                 f"Container {TestServer._DATABASE_NAME} is not running.",
@@ -218,9 +222,7 @@ class TestServer:
                 f"Container {TestServer._MAILSERVER_NAME} does not exist.",
             )
         if (
-            not podman_client.containers.get(
-                TestServer._MAILSERVER_NAME
-            ).status
+            podman_client.containers.get(TestServer._MAILSERVER_NAME).status
             != "running"
         ):
             return (
@@ -238,7 +240,9 @@ class TestServer:
 
     @staticmethod
     def build_environment(
-        podman_client: podman.PodmanClient, recreate: bool = False
+        podman_client: podman.PodmanClient,
+        recreate: bool = False,
+        deb_path: str = None,
     ):
         """
         Create the ``testatrice-network`` network if not already present,
@@ -265,12 +269,35 @@ class TestServer:
             recreate (bool): Set to True if the images should be recreated
               from scratch even if they already exist. The currently existing
               images will be removed.
+            deb_path (str): Local path to the Cockatrice deb file to install
+              on the server. If not present or set to None, the latest stable
+              release is downloaded from GitHub.
         """
 
-        TestServer.__create_network(podman_client)
-        TestServer.__start_database(podman_client, recreate=recreate)
-        TestServer.__start_mailserver(podman_client, recreate=recreate)
-        TestServer.__build_base_server(podman_client, recreate=recreate)
+        with tempfile.TemporaryDirectory() as temp_directory:
+            shutil.copytree(
+                TestServer._DOCKERFILES_PATH,
+                temp_directory,
+                dirs_exist_ok=True,
+            )
+            if deb_path is not None:
+                shutil.copy(
+                    deb_path, f"{temp_directory}/resources/cockatrice.deb"
+                )
+
+            TestServer.__create_network(podman_client)
+            TestServer.__start_database(
+                podman_client, context=temp_directory, recreate=recreate
+            )
+            TestServer.__start_mailserver(
+                podman_client, context=temp_directory, recreate=recreate
+            )
+            TestServer.__build_base_server(
+                podman_client,
+                context=temp_directory,
+                deb_path=deb_path,
+                recreate=recreate,
+            )
 
     @staticmethod
     def __create_network(podman_client: podman.PodmanClient):
@@ -286,7 +313,9 @@ class TestServer:
 
     @staticmethod
     def __start_database(
-        podman_client: podman.PodmanClient, recreate: bool = False
+        podman_client: podman.PodmanClient,
+        context: str,
+        recreate: bool = False,
     ):
         if recreate and podman_client.images.exists(TestServer._DATABASE_NAME):
             TestServer.Logger.log(
@@ -299,7 +328,7 @@ class TestServer:
                 f"Creating {TestServer._DATABASE_NAME} image..."
             )
             result = podman_client.images.build(
-                path=TestServer._DOCKERFILES_CONTEXT,
+                path=context,
                 dockerfile=TestServer._DATABASE_DOCKERFILE,
                 tag=TestServer._DATABASE_NAME,
                 nocache=recreate,
@@ -346,7 +375,9 @@ class TestServer:
 
     @staticmethod
     def __start_mailserver(
-        podman_client: podman.PodmanClient, recreate: bool = False
+        podman_client: podman.PodmanClient,
+        context: str,
+        recreate: bool = False,
     ):
         if recreate and podman_client.images.exists(
             TestServer._MAILSERVER_NAME
@@ -362,7 +393,7 @@ class TestServer:
             )
 
             result = podman_client.images.build(
-                path=TestServer._DOCKERFILES_CONTEXT,
+                path=context,
                 dockerfile=TestServer._MAILSERVER_DOCKERFILE,
                 tag=TestServer._MAILSERVER_NAME,
                 nocache=recreate,
@@ -408,7 +439,10 @@ class TestServer:
 
     @staticmethod
     def __build_base_server(
-        podman_client: podman.PodmanClient, recreate: bool = False
+        podman_client: podman.PodmanClient,
+        context: str,
+        deb_path: str = None,
+        recreate: bool = False,
     ):
         if recreate and podman_client.images.exists(
             TestServer._BASE_SERVER_NAME
@@ -422,9 +456,15 @@ class TestServer:
             TestServer.Logger.log(
                 f"Creating {TestServer._BASE_SERVER_NAME} image..."
             )
+
+            if deb_path is None:
+                dockerfile = TestServer._SERVER_DOCKERFILE_GITHUB
+            else:
+                dockerfile = TestServer._SERVER_DOCKERFILE_LOCAL
+
             result = podman_client.images.build(
-                path=TestServer._DOCKERFILES_CONTEXT,
-                dockerfile=TestServer._SERVER_DOCKERFILE,
+                path=context,
+                dockerfile=dockerfile,
                 tag=TestServer._BASE_SERVER_NAME,
                 nocache=recreate,
             )

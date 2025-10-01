@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.04 as base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -9,8 +9,9 @@ RUN chmod 555 /home/servatrice/server_entry_point.sh
 
 RUN apt-get update
 RUN apt-get install -y curl wget libqt6sql6-mysql
+
 RUN release_url=$(curl -s https://api.github.com/repos/Cockatrice/Cockatrice/releases/latest | grep -o https.*Ubuntu24.04.deb) && \
-    wget -q -O cockatrice.deb ${release_url}
-RUN apt-get install -y ./cockatrice.deb
+    wget -q -O /home/servatrice/cockatrice.deb ${release_url}
+RUN apt-get install -y /home/servatrice/cockatrice.deb
 
 ENTRYPOINT /home/servatrice/server_entry_point.sh

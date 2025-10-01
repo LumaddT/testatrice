@@ -60,6 +60,14 @@ def generate_parser():
             "default": False,
         },
     ]
+    deb_path = [
+        ("-deb", "--deb-path"),
+        {
+            "type": str,
+            "help": "Local path to the Cockatrice deb file to install on the server (default: download the latest stable from GitHub)",
+            "default": None,
+        },
+    ]
 
     parser_server = subparsers.add_parser(
         "server",
@@ -107,6 +115,7 @@ def generate_parser():
         help="Path to the Jinja2 template for the database's SQL file (default: testatrice.sql.j2 provided with the package)",
         default=None,
     )
+    general_group.add_argument(*deb_path[0], **deb_path[1])
     general_group.add_argument(*recreate[0], **recreate[1])
     general_group.add_argument(*verbose[0], **verbose[1])
     general_group.add_argument(*silent[0], **silent[1])
@@ -299,6 +308,7 @@ def generate_parser():
         help=build_description,
         aliases=["build"],
     )
+    parser_build_environment.add_argument(*deb_path[0], **deb_path[1])
     parser_build_environment.add_argument(*recreate[0], **recreate[1])
     parser_build_environment.add_argument(*verbose[0], **verbose[1])
     parser_build_environment.add_argument(*silent[0], **silent[1])
@@ -369,6 +379,7 @@ def server(args):
         max_game_inactivity_time=args.max_game_inactivity_time,
         log_path=args.log_path,
     )
+    build_environment(args)
     test_server.start()
 
     if not args.silent:
@@ -391,8 +402,9 @@ def build_environment(args):
             TestServer.Logger.log(message)
             raise ConnectionError(message)
 
-        TestServer.build_environment(podman_client, recreate=args.recreate)
-    pass
+        TestServer.build_environment(
+            podman_client, recreate=args.recreate, deb_path=args.deb_path
+        )
 
 
 def stop(args):
