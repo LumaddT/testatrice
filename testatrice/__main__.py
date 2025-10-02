@@ -69,6 +69,9 @@ def generate_parser():
         },
     ]
 
+    parser.add_argument(*verbose[0], **verbose[1])
+    parser.add_argument(*silent[0], **silent[1])
+
     parser_server = subparsers.add_parser(
         "server",
         description=server_description,
